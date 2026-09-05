@@ -2,20 +2,14 @@ import { Guild, TextChannel, ChannelType, CategoryChannel } from 'discord.js';
 import { logChannels } from '../config/config';
 import { db } from '../database/database';
 
-// Sabit kategori ID (Discord'da önceden oluşturulmuş bir kategori)
-const LOG_CATEGORY_ID = '1532410509914013916';
-
 export async function createLogChannels(guild: Guild) {
   const createdChannels: Map<string, TextChannel> = new Map();
 
-  // Öncelikle sabit ID üzerinden kategoriyi almayı dene
-  let logCategory = guild.channels.cache.get(LOG_CATEGORY_ID) as CategoryChannel | undefined;
-  // Eğer ID üzerinden bulunamazsa, isim olarak 'LOGLAR' kategorisini ara
-  if (!logCategory) {
-    logCategory = guild.channels.cache.find(
-      (c) => c.name.toUpperCase() === 'LOGLAR' && c.type === ChannelType.GuildCategory
-    ) as CategoryChannel | undefined;
-  }
+  // Sabit kategori ID yerine 'LOGLAR' adıyla kategori bul ya da oluştur
+  let logCategory = guild.channels.cache.find(
+    (c) => c.name.toUpperCase() === 'LOGLAR' && c.type === ChannelType.GuildCategory
+  ) as CategoryChannel | undefined;
+
   // Yine bulunamazsa, kategori oluştur
   if (!logCategory) {
     try {
@@ -28,7 +22,7 @@ export async function createLogChannels(guild: Guild) {
         name: 'LOGLAR',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          { id: guild.id, deny: ['ViewChannel'] },
+          { id: guild.id, allow: ['ViewChannel'] },
           { id: botMember.id, allow: ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles'] },
         ],
         reason: 'Log kanalları için kategori otomatik oluşturuldu',
@@ -74,10 +68,10 @@ export async function createLogChannels(guild: Guild) {
         permissionOverwrites: [
           {
             id: guild.id, // @everyone
-            deny: ['ViewChannel'], // Herkes göremesin
+            allow: ['ViewChannel'], // Herkes görebilsin
           },
           {
-            id: botMember.id, // Bot
+            id: botMember!.id, // Bot
             allow: ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles'],
           },
         ],
