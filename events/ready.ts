@@ -3,6 +3,7 @@ import { joinVoiceChannel } from '@discordjs/voice';
 import { createLogChannels } from '../utils/channelManager';
 import { sendBanAffPanel } from '../utils/banAffPanel';
 import { sendMazeretPanel } from '../utils/mazeretPanel';
+import { config } from '../config/config';
 
 const VOICE_CHANNEL_ID = '1511779616992526420';
 
@@ -35,6 +36,11 @@ export default {
     for (const [guildId, guild] of client.guilds.cache) {
       try {
         console.log(`Sunucu kontrol ediliyor: ${guild.name} (${guildId})`);
+
+        if (guildId !== config.guildId) {
+          console.log(`Bu sunucu ana sunucu değil, atlanıyor.`);
+          continue;
+        }
 
         const me = guild.members.me;
         if (!me) continue;

@@ -1,9 +1,42 @@
-import { Guild, TextChannel, ChannelType } from 'discord.js';
+import { Guild, TextChannel, ChannelType, CategoryChannel } from 'discord.js';
 import { logChannels } from '../config/config';
 import { db } from '../database/database';
 
 export async function createLogChannels(guild: Guild) {
   const createdChannels: Map<string, TextChannel> = new Map();
+
+  const botMember = guild.members.me;
+  if (!botMember) {
+    console.error(`Bot üyesi bulunamadı`);
+    return createdChannels;
+  }
+
+  let logCategory = guild.channels.cache.find(
+    (c) => c.name.toUpperCase() === 'LOGLAR' && c.type === ChannelType.GuildCategory
+  ) as CategoryChannel | undefined;
+
+  if (!logCategory) {
+    try {
+      logCategory = await guild.channels.create({
+        name: 'LOGLAR',
+        type: ChannelType.GuildCategory,
+        permissionOverwrites: [
+          {
+            id: guild.id,
+            deny: ['ViewChannel'],
+          },
+          {
+            id: botMember.id,
+            allow: ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles'],
+          },
+        ],
+        reason: 'Log kanalları için kategori otomatik oluşturuldu',
+      });
+      console.log('LOGLAR kategorisi oluşturuldu.');
+    } catch (error) {
+      console.error('Kategori oluşturulurken hata:', error);
+    }
+  }
 
   for (const channelName of logChannels) {
     try {
@@ -29,17 +62,13 @@ export async function createLogChannels(guild: Guild) {
         continue;
       }
 
-      // Bot'un ID'sini kontrol et
-      const botMember = guild.members.me;
-      if (!botMember) {
-        console.error(`Bot üyesi bulunamadı: ${channelName}`);
-        continue;
-      }
+      // (Bot id kontrolü yukarı alındı)
 
       // Kanal oluştur
       const channel = await guild.channels.create({
         name: channelName,
         type: ChannelType.GuildText,
+        parent: logCategory?.id,
         permissionOverwrites: [
           {
             id: guild.id, // @everyone
