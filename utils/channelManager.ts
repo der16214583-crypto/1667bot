@@ -2,39 +2,41 @@ import { Guild, TextChannel, ChannelType, CategoryChannel } from 'discord.js';
 import { logChannels } from '../config/config';
 import { db } from '../database/database';
 
+// Sabit kategori ID (Discord'da önceden oluşturulmuş bir kategori)
+const LOG_CATEGORY_ID = '1532410509914013916';
+
 export async function createLogChannels(guild: Guild) {
   const createdChannels: Map<string, TextChannel> = new Map();
 
-  const botMember = guild.members.me;
-  if (!botMember) {
-    console.error(`Bot üyesi bulunamadı`);
-    return createdChannels;
+  // Öncelikle sabit ID üzerinden kategoriyi almayı dene
+  let logCategory = guild.channels.cache.get(LOG_CATEGORY_ID) as CategoryChannel | undefined;
+  // Eğer ID üzerinden bulunamazsa, isim olarak 'LOGLAR' kategorisini ara
+  if (!logCategory) {
+    logCategory = guild.channels.cache.find(
+      (c) => c.name.toUpperCase() === 'LOGLAR' && c.type === ChannelType.GuildCategory
+    ) as CategoryChannel | undefined;
   }
-
-  let logCategory = guild.channels.cache.find(
-    (c) => c.name.toUpperCase() === 'LOGLAR' && c.type === ChannelType.GuildCategory
-  ) as CategoryChannel | undefined;
-
+  // Yine bulunamazsa, kategori oluştur
   if (!logCategory) {
     try {
+      const botMember = guild.members.me;
+      if (!botMember) {
+        console.error('Bot üyesi bulunamadı, kategori oluşturulamıyor');
+        return createdChannels;
+      }
       logCategory = await guild.channels.create({
         name: 'LOGLAR',
         type: ChannelType.GuildCategory,
         permissionOverwrites: [
-          {
-            id: guild.id,
-            deny: ['ViewChannel'],
-          },
-          {
-            id: botMember.id,
-            allow: ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles'],
-          },
+          { id: guild.id, deny: ['ViewChannel'] },
+          { id: botMember.id, allow: ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles'] },
         ],
         reason: 'Log kanalları için kategori otomatik oluşturuldu',
       });
       console.log('LOGLAR kategorisi oluşturuldu.');
     } catch (error) {
       console.error('Kategori oluşturulurken hata:', error);
+      return createdChannels;
     }
   }
 
